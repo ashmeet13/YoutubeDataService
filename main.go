@@ -1,6 +1,6 @@
 package main
 
-import "github.com/ashmeet13/YoutubeDataService/common"
+import "github.com/ashmeet13/YoutubeDataService/source/common"
 
 func main() {
 	config := common.GetConfiguration()

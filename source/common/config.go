@@ -5,11 +5,13 @@ import "os"
 const (
 	MongoBaseURL      = "MONGO_BASE_URL"
 	MongoDatabaseName = "MONGO_DATABASE_NAME"
+	YoutubeAPIKey     = "YOUTUBE_API_KEY"
 )
 
 type Configuration struct {
 	MongoBaseURL      string
 	MongoDatabaseName string
+	YoutubeAPIKey     string
 }
 
 var Config *Configuration
@@ -36,8 +38,15 @@ func SetupConfiguration() *Configuration {
 		return nil
 	}
 
+	youtubeAPIKey := os.Getenv(YoutubeAPIKey)
+	if youtubeAPIKey == "" {
+		logger.Fatalln("Could not find environment variable", YoutubeAPIKey)
+		return nil
+	}
+
 	return &Configuration{
 		MongoBaseURL:      mongoBaseURL,
 		MongoDatabaseName: mongoDatabaseName,
+		YoutubeAPIKey:     youtubeAPIKey,
 	}
 }
