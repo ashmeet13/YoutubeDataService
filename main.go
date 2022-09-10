@@ -1,6 +1,11 @@
 package main
 
-import "github.com/ashmeet13/YoutubeDataService/source/common"
+import (
+	"fmt"
+
+	"github.com/ashmeet13/YoutubeDataService/source/common"
+	"github.com/ashmeet13/YoutubeDataService/source/worker"
+)
 
 func main() {
 	config := common.GetConfiguration()
@@ -10,4 +15,9 @@ func main() {
 		WithField("MongoURL", config.MongoBaseURL).
 		WithField("MongoDatabase", config.MongoDatabaseName).
 		Info("Initalising Server")
+
+	workerHandler := worker.NewWorkerHandler(config.YoutubeAPIKeys)
+	fmt.Println(workerHandler)
+
+	workerHandler.Start()
 }

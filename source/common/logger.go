@@ -4,11 +4,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var Logger *logrus.Logger
+var logger *logrus.Entry
 
-func GetLogger() *logrus.Logger {
-	if Logger == nil {
-		Logger = logrus.StandardLogger()
+func GetLogger() *logrus.Entry {
+	if logger == nil {
+		logger = logrus.NewEntry(logrus.StandardLogger())
 	}
-	return Logger
+	return logger
 }

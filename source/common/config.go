@@ -1,26 +1,29 @@
 package common
 
-import "os"
+import (
+	"os"
+	"strings"
+)
 
 const (
 	MongoBaseURL      = "MONGO_BASE_URL"
 	MongoDatabaseName = "MONGO_DATABASE_NAME"
-	YoutubeAPIKey     = "YOUTUBE_API_KEY"
+	YoutubeAPIKeys    = "YOUTUBE_API_KEYS"
 )
 
 type Configuration struct {
 	MongoBaseURL      string
 	MongoDatabaseName string
-	YoutubeAPIKey     string
+	YoutubeAPIKeys    []string
 }
 
-var Config *Configuration
+var config *Configuration
 
 func GetConfiguration() *Configuration {
-	if Config == nil {
-		Config = SetupConfiguration()
+	if config == nil {
+		config = SetupConfiguration()
 	}
-	return Config
+	return config
 }
 
 func SetupConfiguration() *Configuration {
@@ -38,15 +41,20 @@ func SetupConfiguration() *Configuration {
 		return nil
 	}
 
-	youtubeAPIKey := os.Getenv(YoutubeAPIKey)
-	if youtubeAPIKey == "" {
-		logger.Fatalln("Could not find environment variable", YoutubeAPIKey)
+	youtubeAPIKeys := os.Getenv(YoutubeAPIKeys)
+	if youtubeAPIKeys == "" {
+		logger.Fatalln("Could not find environment variable", YoutubeAPIKeys)
 		return nil
+	}
+
+	keys := []string{}
+	for _, apiKey := range strings.Split(youtubeAPIKeys, ",") {
+		keys = append(keys, apiKey)
 	}
 
 	return &Configuration{
 		MongoBaseURL:      mongoBaseURL,
 		MongoDatabaseName: mongoDatabaseName,
-		YoutubeAPIKey:     youtubeAPIKey,
+		YoutubeAPIKeys:    keys,
 	}
 }
