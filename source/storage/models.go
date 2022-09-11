@@ -2,6 +2,8 @@ package storage
 
 import "time"
 
+const VideoMetadataC = "video_metadata"
+
 type VideoMetadata struct {
 	VideoID              string    `bson:"video_id"`
 	Title                string    `bson:"title"`
@@ -12,4 +14,12 @@ type VideoMetadata struct {
 	MediumThumbnailURL   string    `bson:"medium_thumbnail_url"`
 	StandardThumbnailURL string    `bson:"standard_thumbnail_url"`
 	PublishedAt          time.Time `bson:"published_at"`
+}
+
+const UserC = "users"
+
+type User struct {
+	UserID    string    `bson:"user_id"`
+	PageSize  int       `bson:"page_size"`
+	Timestamp time.Time `bson:"timestamp"`
 }

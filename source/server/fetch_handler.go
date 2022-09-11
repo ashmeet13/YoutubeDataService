@@ -2,9 +2,9 @@ package server
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/ashmeet13/YoutubeDataService/source/common"
 	"github.com/ashmeet13/YoutubeDataService/source/storage"
@@ -13,10 +13,9 @@ import (
 )
 
 type FetchResponse struct {
-	User        string
-	Page        int
-	LatestIndex int
-	Metadata    []*storage.VideoMetadata
+	User     string
+	Page     int
+	Metadata []*storage.VideoMetadata
 }
 
 func (h *ServerHandler) NewFetchHandler(w http.ResponseWriter, r *http.Request) {
@@ -26,7 +25,6 @@ func (h *ServerHandler) NewFetchHandler(w http.ResponseWriter, r *http.Request) 
 
 	pagesizeParam := r.URL.Query().Get("pagesize")
 	var pageSize int
-
 	if pagesizeParam == "" {
 		pageSize = config.DefaultPageSize
 	} else {
@@ -39,31 +37,32 @@ func (h *ServerHandler) NewFetchHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	userID := r.URL.Query().Get("userid")
-
 	if userID == "" {
 		userID = uuid.NewString()
 	}
 
-	lastInsertedMetadata, err := h.storageHandler.FindLastInsertedMetadata()
+	user, err := h.userHandler.ReadUser(userID)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	lastIndex := 0
-	if lastInsertedMetadata != nil {
-		lastIndex = lastInsertedMetadata.DocumentIndex
+	if user != nil {
+		// Update
+	} else {
+		h.userHandler.CreateUser(&storage.User{
+			UserID:    userID,
+			PageSize:  pageSize,
+			Timestamp: time.Now().UTC(),
+		})
 	}
 
-	h.setUserPageSize(userID, pageSize)
-	h.setUserEndIndex(userID, lastIndex)
-
 	jsonResponse, err := json.Marshal(&FetchResponse{
-		User:        userID,
-		Page:        0,
-		LatestIndex: lastIndex,
+		User: userID,
+		Page: 0,
 	})
+
 	if err != nil {
 		logger.WithError(err).Error("Error happened in JSON marshal")
 	}
@@ -100,24 +99,16 @@ func (h *ServerHandler) FetchHandler(w http.ResponseWriter, r *http.Request) {
 
 	logger.WithField("User", userID).WithField("Page", page).Info("Fetch Request")
 
-	userEndIndex, err := h.getUserEndIndex(userID)
+	user, err := h.userHandler.ReadUser(userID)
 	if err != nil {
-		msg := "No starting index found"
-		http.Error(w, msg, http.StatusInternalServerError)
+		w.WriteHeader(http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	pageSize, err := h.getUserPageSize(userID)
-	if err != nil {
-		msg := "No page size found"
-		http.Error(w, msg, http.StatusInternalServerError)
-		return
-	}
+	offset := user.PageSize * (page - 1)
 
-	requiredEndIndex := userEndIndex - (pageSize * (page - 1))
-	requiredStartIndex := requiredEndIndex - pageSize
-
-	metadata, err := h.storageHandler.FetchPage(requiredStartIndex, requiredEndIndex)
+	metadata, err := h.videoMetadataHandler.FetchPagedMetadata(user.Timestamp, int64(offset), int64(user.PageSize))
 	if err != nil {
 		msg := "Failed in fetching page"
 		http.Error(w, msg, http.StatusInternalServerError)
@@ -125,10 +116,9 @@ func (h *ServerHandler) FetchHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	jsonResponse, err := json.Marshal(&FetchResponse{
-		User:        userID,
-		Page:        page,
-		Metadata:    metadata,
-		LatestIndex: requiredEndIndex,
+		User:     userID,
+		Page:     page,
+		Metadata: metadata,
 	})
 	if err != nil {
 		logger.WithError(err).Error("Error happened in JSON marshal")
@@ -137,42 +127,4 @@ func (h *ServerHandler) FetchHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(jsonResponse)
-}
-
-func (h *ServerHandler) setUserEndIndex(userID string, index int) {
-	h.lock.Lock()
-	defer h.lock.Unlock()
-
-	h.userEndingIndex[userID] = index
-}
-
-func (h *ServerHandler) getUserEndIndex(userID string) (int, error) {
-	h.lock.Lock()
-	defer h.lock.Unlock()
-
-	value, ok := h.userEndingIndex[userID]
-	if !ok {
-		return 0, errors.New("no starting index found")
-	}
-
-	return value, nil
-}
-
-func (h *ServerHandler) setUserPageSize(userID string, pageSize int) {
-	h.lock.Lock()
-	defer h.lock.Unlock()
-
-	h.userPageSize[userID] = pageSize
-}
-
-func (h *ServerHandler) getUserPageSize(userID string) (int, error) {
-	h.lock.Lock()
-	defer h.lock.Unlock()
-
-	value, ok := h.userPageSize[userID]
-	if !ok {
-		return 0, errors.New("no starting index found")
-	}
-
-	return value, nil
 }

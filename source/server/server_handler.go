@@ -1,23 +1,17 @@
 package server
 
 import (
-	"sync"
-
 	"github.com/ashmeet13/YoutubeDataService/source/storage"
 )
 
 func NewServerHandler() *ServerHandler {
 	return &ServerHandler{
-		lock:            sync.Mutex{},
-		userEndingIndex: map[string]int{},
-		userPageSize:    map[string]int{},
-		storageHandler:  storage.NewVideoMetadataImpl(),
+		videoMetadataHandler: storage.NewVideoMetadataImpl(),
+		userHandler:          storage.NewUserImpl(),
 	}
 }
 
 type ServerHandler struct {
-	lock            sync.Mutex
-	userEndingIndex map[string]int
-	userPageSize    map[string]int
-	storageHandler  storage.VideoMetadataInterface
+	videoMetadataHandler storage.VideoMetadataInterface
+	userHandler          storage.UserInterface
 }

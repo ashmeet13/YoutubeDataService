@@ -50,7 +50,7 @@ type WorkerHandler struct {
 func NewWorkerHandler(apiKeys []string) (*WorkerHandler, error) {
 	return &WorkerHandler{
 		query:                "official|cricket|football|tennis|boating|sailing|food|minecraft|gaming|news|new",
-		currentPublishedTime: time.Now().UTC().Add(-1 * time.Hour),
+		currentPublishedTime: time.Now().UTC(),
 		apiKeys:              apiKeys,
 		apiKeyIndex:          0,
 		youtubeHandler:       youtube_handler.NewYoutubeHandler(apiKeys[0]),
@@ -95,11 +95,15 @@ func (h *WorkerHandler) Execute() error {
 	var err error
 	var results *youtube.SearchListResponse
 
-	logger.WithField("From", h.currentPublishedTime).WithField("NextPageToken", h.nextPageToken).Info("Fetching Youtube Data")
-
+	// 1. If NextPageToken present
+	//			Request Paginated Response from PreviousPublishedAt
+	//    Else,
+	// 			Request Response from CurrentPublishedAt
 	if h.nextPageToken != "" {
+		logger.WithField("From", h.currentPublishedTime).WithField("NextPageToken", h.nextPageToken).Info("Fetching Youtube Data for new DateTime")
 		results, err = h.youtubeHandler.DoSearchListNextPage(h.query, []string{"snippet"}, "video", "date", h.previousPublishedTime.Format(time.RFC3339), h.nextPageToken, 50)
 	} else {
+		logger.WithField("From", h.currentPublishedTime).WithField("NextPageToken", h.nextPageToken).Info("Fetching Youtube Data for next Page")
 		results, err = h.youtubeHandler.DoSearchList(h.query, []string{"snippet"}, "video", "date", h.currentPublishedTime.Format(time.RFC3339), 50)
 	}
 
@@ -107,28 +111,37 @@ func (h *WorkerHandler) Execute() error {
 		return err
 	}
 
-	metadataToInsert := []*storage.VideoMetadata{}
+	logger.WithField("TotalDocuments", len(results.Items)).Info("Recieved Youtube Result")
 
+	metadataToInsert := []*storage.VideoMetadata{}
+	// 2. Iterate over the results
 	for _, result := range results.Items {
 		videoMetadata, err := newVideoMetadata(result)
 		if err != nil {
 			return err
 		}
 
+		// 3. Check if video already present
 		storageMetadata, err := h.videoMetadataImpl.FindOneMetadataWithVideoID(videoMetadata.VideoID)
 		if err != nil {
 			return err
 		}
 
 		if storageMetadata != nil {
+			// 4. If present and has been updated, update value in DB
 			if storageMetadata.PublishedAt.Before(videoMetadata.PublishedAt) {
+				logger.WithField("VideoID", videoMetadata.VideoID).Info("Updating Document")
 				h.videoMetadataImpl.UpdateOneMetadata(videoMetadata.VideoID, videoMetadata)
 			}
 		} else {
+			// 5. If not present, add in list to bulk insert later
 			metadataToInsert = append(metadataToInsert, videoMetadata)
 		}
+	}
 
-		publishedAt, err := time.Parse(time.RFC3339, result.Snippet.PublishedAt)
+	// 6. If no page taken was used, update the currentPublishedTime to use for next call
+	if h.nextPageToken == "" {
+		publishedAt, err := time.Parse(time.RFC3339, results.Items[0].Snippet.PublishedAt)
 		if err != nil {
 			return err
 		}
@@ -142,13 +155,15 @@ func (h *WorkerHandler) Execute() error {
 		}
 	}
 
+	// 7. Reset token for next call
 	h.nextPageToken = ""
 	if results.NextPageToken != "" {
 		h.nextPageToken = results.NextPageToken
 	}
 
+	// 8. Bulk Insert into DB
 	if len(metadataToInsert) > 0 {
-		logger.WithField("InsertDocCount", len(metadataToInsert)).Info("Publishing documents to database")
+		logger.WithField("InsertDocumentCount", len(metadataToInsert)).Info("Publishing documents to database")
 
 		err := h.videoMetadataImpl.BulkInsertMetadata(metadataToInsert)
 		if err != nil {

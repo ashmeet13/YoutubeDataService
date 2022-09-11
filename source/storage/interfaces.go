@@ -1,6 +1,6 @@
 package storage
 
-const VideoMetadataC = "video_metadata"
+import "time"
 
 type VideoMetadataInterface interface {
 	BulkInsertMetadata(videoMetadatas []*VideoMetadata) error
@@ -8,5 +8,10 @@ type VideoMetadataInterface interface {
 	FindLastInsertedMetadata() (*VideoMetadata, error)
 	FindOneMetadata(title string, description string) (*VideoMetadata, error)
 	UpdateOneMetadata(id string, videoMetadata *VideoMetadata) error
-	FetchPage(start, end int) ([]*VideoMetadata, error)
+	FetchPagedMetadata(timestamp time.Time, offset, limit int64) ([]*VideoMetadata, error)
+}
+
+type UserInterface interface {
+	CreateUser(user *User) error
+	ReadUser(userID string) (*User, error)
 }

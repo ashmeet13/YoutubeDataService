@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -113,15 +114,18 @@ func (m *VideoMetadataImpl) UpdateOneMetadata(id string, videoMetadata *VideoMet
 	return nil
 }
 
-func (m *VideoMetadataImpl) FetchPage(start, end int) ([]*VideoMetadata, error) {
+func (m *VideoMetadataImpl) FetchPagedMetadata(timestamp time.Time, offset, limit int64) ([]*VideoMetadata, error) {
 	query := bson.M{
-		"document_index": bson.M{
-			"$gt":  start,
-			"$lte": end,
-		},
+		"published_at": bson.M{"$lte": timestamp},
 	}
 
-	cur, err := Find(m.collection, query)
+	queryOpts := &options.FindOptions{
+		Sort:  bson.M{"published_at": -1},
+		Limit: &limit,
+		Skip:  &offset,
+	}
+
+	cur, err := Find(m.collection, query, queryOpts)
 
 	err = cur.Err()
 	if err != nil {

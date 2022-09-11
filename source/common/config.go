@@ -52,7 +52,7 @@ func SetupConfiguration() *Configuration {
 
 	defaultPageSizeString := os.Getenv(DefaultPageSize)
 	if defaultPageSizeString == "" {
-		defaultPageSizeString = "20"
+		defaultPageSizeString = "5"
 	}
 
 	keys := []string{}

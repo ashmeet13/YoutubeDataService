@@ -19,6 +19,20 @@ func InsertMany(collectionName string, documents []interface{}, opts ...*options
 	return collection.InsertMany(ctx, documents, opts...)
 }
 
+func InsertOne(collectionName string, document interface{}, opts ...*options.InsertOneOptions) (*mongo.InsertOneResult, error) {
+	collection := GetCollection(collectionName)
+
+	doc, err := convertToBsonM(document)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	return collection.InsertOne(ctx, doc, opts...)
+}
+
 func FindOne(collectionName string, document interface{}, opts ...*options.FindOneOptions) *mongo.SingleResult {
 	collection := GetCollection(collectionName)
 

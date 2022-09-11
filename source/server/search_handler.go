@@ -42,7 +42,7 @@ func (h *ServerHandler) SearchHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	metadata, err := h.storageHandler.FindOneMetadata(searchFilters.Title, searchFilters.Description)
+	metadata, err := h.videoMetadataHandler.FindOneMetadata(searchFilters.Title, searchFilters.Description)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
