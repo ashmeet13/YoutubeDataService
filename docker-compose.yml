@@ -1,0 +1,18 @@
+version: '3'
+services:
+  mongo:
+    image: mongo:5.0
+    volumes:
+      - ./mongo_data:/data/db
+    ports:
+      - 27017:27017
+  youtube_service:
+    build: .
+    container_name: youtube_service
+    ports:
+      - "3000:3000"
+    environment:
+      - MONGO_BASE_URL=mongodb://mongo:27017
+      - MONGO_DATABASE_NAME=youtube_service
+      - YOUTUBE_API_KEYS=[Comma Separated API Keys]
+      - DEFAULT_PAGE_SIZE=5

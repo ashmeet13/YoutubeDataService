@@ -18,7 +18,7 @@ func Start() {
 	r.HandleFunc("/fetch/{userid}/{page}", serverHandler.FetchHandler)
 
 	logger.Info("Starting server")
-	if err := http.ListenAndServe(":8080", r); err != nil {
+	if err := http.ListenAndServe(":3000", r); err != nil {
 		logger.WithError(err).Fatal("Failed to start server, exiting")
 	}
 }

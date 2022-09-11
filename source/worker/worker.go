@@ -140,7 +140,7 @@ func (h *WorkerHandler) Execute() error {
 	}
 
 	// 6. If no page taken was used, update the currentPublishedTime to use for next call
-	if h.nextPageToken == "" {
+	if h.nextPageToken == "" && len(results.Items) > 0 {
 		publishedAt, err := time.Parse(time.RFC3339, results.Items[0].Snippet.PublishedAt)
 		if err != nil {
 			return err
