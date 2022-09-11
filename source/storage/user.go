@@ -43,3 +43,20 @@ func (u *UserImpl) ReadUser(userID string) (*User, error) {
 
 	return &decodedResult, nil
 }
+
+func (u *UserImpl) UpdateUser(id string, user *User) error {
+	filters := bson.M{
+		"user_id": bson.M{"$eq": id},
+	}
+
+	modifier := bson.M{
+		"$set": user,
+	}
+
+	_, err := UpdateOne(u.collection, filters, modifier)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

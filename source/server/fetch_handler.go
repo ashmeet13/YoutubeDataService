@@ -49,7 +49,9 @@ func (h *ServerHandler) NewFetchHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if user != nil {
-		// Update
+		logger.Info("Updating userid", userID)
+		user.Timestamp = time.Now().UTC()
+		h.userHandler.UpdateUser(userID, user)
 	} else {
 		h.userHandler.CreateUser(&storage.User{
 			UserID:    userID,

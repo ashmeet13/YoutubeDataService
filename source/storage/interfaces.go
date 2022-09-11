@@ -14,4 +14,5 @@ type VideoMetadataInterface interface {
 type UserInterface interface {
 	CreateUser(user *User) error
 	ReadUser(userID string) (*User, error)
+	UpdateUser(id string, user *User) error
 }
