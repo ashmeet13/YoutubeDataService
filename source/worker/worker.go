@@ -1,7 +1,6 @@
 package worker
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
@@ -11,22 +10,32 @@ import (
 )
 
 type WorkerHandler struct {
-	query          string
-	publishedTime  string
-	apiKeys        []string
-	apiKeyIndex    int
-	youtubeHandler *youtube.YoutubeHandler
+	query             string
+	publishedTime     string
+	apiKeys           []string
+	apiKeyIndex       int
+	lastInsertedIndex int
+	youtubeHandler    *youtube.YoutubeHandler
+	videoMetadataImpl storage.VideoMetadataInterface
 }
 
-func NewWorkerHandler(apiKeys []string) *WorkerHandler {
-	fmt.Println(apiKeys)
-	return &WorkerHandler{
-		query:          "official",
-		publishedTime:  time.Now().UTC().Format(time.RFC3339),
-		apiKeys:        apiKeys,
-		apiKeyIndex:    0,
-		youtubeHandler: youtube.NewYoutubeHandler(apiKeys[0]),
+func NewWorkerHandler(apiKeys []string) (*WorkerHandler, error) {
+	videoMetadataImpl := storage.NewVideoMetadataImpl()
+
+	lastInsertedIndex, err := videoMetadataImpl.FindLastInsertedIndex()
+	if err != nil {
+		return nil, err
 	}
+
+	return &WorkerHandler{
+		query:             "official|cricket|football|tennis|boating|sailing|food|minecraft|gaming|news|new",
+		publishedTime:     time.Now().UTC().Format(time.RFC3339),
+		apiKeys:           apiKeys,
+		apiKeyIndex:       0,
+		lastInsertedIndex: lastInsertedIndex,
+		youtubeHandler:    youtube.NewYoutubeHandler(apiKeys[0]),
+		videoMetadataImpl: storage.NewVideoMetadataImpl(),
+	}, nil
 }
 
 func (h *WorkerHandler) Start() {
@@ -34,46 +43,57 @@ func (h *WorkerHandler) Start() {
 
 	for {
 		err := h.Execute()
-
 		if err != nil {
 			if strings.Contains(err.Error(), "quotaExceeded") {
 				logger.Info("API Key Quota Exceeded")
 				h.youtubeHandler.UpdateAPIKey(h.FetchNextAPIKey())
-				logger.WithField("ApiKeyIndex", h.apiKeyIndex).Info("API Key Updated")
 			} else {
-				logger.WithError(err).Error("Exiting Worker")
+				logger.WithError(err).Error("Error in worker, exiting worker")
 				break
 			}
 		}
-		time.Sleep(time.Second * 10)
+		time.Sleep(10 * time.Second)
 	}
+
 }
 
 func (h *WorkerHandler) FetchNextAPIKey() string {
+	logger := common.GetLogger()
 	h.apiKeyIndex += 1
 	if h.apiKeyIndex == len(h.apiKeys) {
 		h.apiKeyIndex = 0
 	}
 
+	logger.WithField("NewAPIKeyIndex", h.apiKeyIndex).WithField("TotalKeys", len(h.apiKeys)).Info("API Key Updated")
 	return h.apiKeys[h.apiKeyIndex]
 }
 
 func (h *WorkerHandler) Execute() error {
 	logger := common.GetLogger()
 	logger = logger.WithField("function", "Worker/Execute")
-	count := 0
 
-	logger.WithField("PublishedAt", h.publishedTime).Info("Fetching Youtube Data")
+	var err error
+	videoMetadatas := []*storage.VideoMetadata{}
+
+	logger.WithField("From", h.publishedTime).Info("Fetching Youtube Data")
 	results, err := h.youtubeHandler.DoSearchList(h.query, []string{"snippet"}, "video", "date", h.publishedTime)
 	if err != nil {
 		return err
 	}
 
-	for _, result := range results.Items {
+	lastIndex := len(results.Items) - 1
+	for index := range results.Items {
+		result := results.Items[lastIndex-index]
+		publishedAtTime, err := time.Parse(time.RFC3339, result.Snippet.PublishedAt)
+		if err != nil {
+			return err
+		}
+
 		videoData := &storage.VideoMetadata{
+			VideoID:     result.Id.VideoId,
 			Title:       result.Snippet.Title,
 			Description: result.Snippet.Description,
-			PublishedAt: result.Snippet.PublishedAt,
+			PublishedAt: publishedAtTime,
 		}
 
 		if result.Snippet.Thumbnails.Default != nil {
@@ -89,20 +109,47 @@ func (h *WorkerHandler) Execute() error {
 			videoData.MediumThumbnailURL = result.Snippet.Thumbnails.Medium.Url
 		}
 		if result.Snippet.Thumbnails.Standard != nil {
-			videoData.StandarThumbnailURL = result.Snippet.Thumbnails.Standard.Url
+			videoData.StandardThumbnailURL = result.Snippet.Thumbnails.Standard.Url
 		}
 
-		_, err := storage.InsertOne(storage.VideoMetadataC, videoData)
+		videoMetadatas = append(videoMetadatas, videoData)
+	}
+
+	if len(videoMetadatas) > 0 {
+		h.publishedTime = results.Items[0].Snippet.PublishedAt
+		logger.WithField("PublishedTime", h.publishedTime).Info("Updated Published Time")
+		err = h.PublishToDatabase(videoMetadatas)
 		if err != nil {
-			logger.Error("Failed to insert document", result.Id)
 			return err
-		} else {
-			h.publishedTime = result.Snippet.PublishedAt
-			count += 1
 		}
 	}
 
-	logger.WithField("InsertedDocs", count).WithField("Page", results.NextPageToken).Info("Docs Inserted")
+	return nil
+}
 
+func (h *WorkerHandler) PublishToDatabase(videoMetadatas []*storage.VideoMetadata) error {
+	logger := common.GetLogger()
+	logger.WithField("TotalDocCount", len(videoMetadatas)).Info("New Publish Request")
+
+	toInsert := []*storage.VideoMetadata{}
+	for _, metadata := range videoMetadatas {
+		exists, err := h.videoMetadataImpl.MetadataExists(metadata.VideoID)
+		if err != nil {
+			return err
+		}
+		if !exists {
+			metadata.DocumentIndex = h.lastInsertedIndex + 1
+			h.lastInsertedIndex = metadata.DocumentIndex
+			toInsert = append(toInsert, metadata)
+		}
+	}
+
+	if len(toInsert) > 0 {
+		logger.WithField("InsertDocCount", len(toInsert)).WithField("LastIndex", h.lastInsertedIndex).Info("Publishing documents to database")
+		err := h.videoMetadataImpl.BulkInsertMetadata(toInsert)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }

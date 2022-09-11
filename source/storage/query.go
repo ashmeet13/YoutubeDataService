@@ -10,16 +10,25 @@ import (
 
 var timeout = 5 * time.Second
 
-func InsertOne(collectionName string, document interface{}, opts ...*options.InsertOneOptions) (*mongo.InsertOneResult, error) {
+func InsertMany(collectionName string, documents []interface{}, opts ...*options.InsertManyOptions) (*mongo.InsertManyResult, error) {
+	collection := GetCollection(collectionName)
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	return collection.InsertMany(ctx, documents, opts...)
+}
+
+func FindOne(collectionName string, document interface{}, opts ...*options.FindOneOptions) *mongo.SingleResult {
 	collection := GetCollection(collectionName)
 
 	doc, err := convertToBsonM(document)
 	if err != nil {
-		return nil, err
+		return nil
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	return collection.InsertOne(ctx, doc, opts...)
+	return collection.FindOne(ctx, doc, opts...)
 }
