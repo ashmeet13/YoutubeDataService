@@ -68,3 +68,28 @@ func (m *VideoMetadataImpl) FindLastInsertedIndex() (int, error) {
 
 	return decodedResult.DocumentIndex, err
 }
+
+func (m *VideoMetadataImpl) FindOneMetadata(title string, description string) (*VideoMetadata, error) {
+	query := bson.M{}
+
+	if title != "" {
+		query["title"] = bson.M{"$eq": title}
+	}
+
+	if description != "" {
+		query["description"] = bson.M{"$eq": description}
+	}
+
+	result := FindOne(m.collection, query)
+
+	var decodedResult VideoMetadata
+	err := result.Decode(&decodedResult)
+
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &decodedResult, nil
+}
