@@ -39,9 +39,9 @@ func (h *YoutubeHandler) UpdateAPIKey(apiKey string) error {
 	return nil
 }
 
-func (h *YoutubeHandler) DoSearchList(query string, parts []string, resourceType string, orderBy string, publishedAfter string) (*youtube.SearchListResponse, error) {
+func (h *YoutubeHandler) DoSearchList(query string, parts []string, resourceType string, orderBy string, publishedAfter string, maxResults int) (*youtube.SearchListResponse, error) {
 	searchRequest := h.youtubeClient.Search.List(parts).Q(query).
-		Type(resourceType).Order(orderBy).PublishedAfter(publishedAfter)
+		Type(resourceType).Order(orderBy).PublishedAfter(publishedAfter).MaxResults(int64(maxResults))
 
 	response, err := searchRequest.Do()
 
@@ -52,44 +52,15 @@ func (h *YoutubeHandler) DoSearchList(query string, parts []string, resourceType
 	return response, nil
 }
 
-// // https://youtube.googleapis.com/youtube/v3/search?part=snippet&order=date&publishedAfter=2022-09-10T18%3A21%3A38Z&q=official&type=video&key=[YOUR_API_KEY]
-// func (h *YoutubeHandler) DoSearchListNew(query string, parts []string, resourceType string, orderBy string, publishedAfter string) {
-// 	URL := fmt.Sprintf(
-// 		"https://youtube.googleapis.com/youtube/v3/search?part=%s&order=%s&publishedAfter=%s&q=%s&type=%s&key=%s",
-// 		strings.Join(parts, ","),
-// 		orderBy,
-// 		publishedAfter,
-// 		query,
-// 		resourceType,
-// 		h.apiKey,
-// 	)
+func (h *YoutubeHandler) DoSearchListNextPage(query string, parts []string, resourceType string, orderBy string, publishedAfter string, nextPageToken string, maxResults int) (*youtube.SearchListResponse, error) {
+	searchRequest := h.youtubeClient.Search.List(parts).Q(query).
+		Type(resourceType).Order(orderBy).PublishedAfter(publishedAfter).MaxResults(int64(maxResults)).PageToken(nextPageToken)
 
-// 	fmt.Println(URL)
+	response, err := searchRequest.Do()
 
-// 	resp, err := http.Get(URL)
+	if err != nil {
+		return nil, err
+	}
 
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-
-// 	defer resp.Body.Close()
-
-// 	body, err := ioutil.ReadAll(resp.Body)
-
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-
-// 	fmt.Println(string(body))
-
-// 	// searchRequest := h.youtubeClient.Search.List(parts).Q(query).
-// 	// 	Type(resourceType).Order(orderBy).PublishedAfter(publishedAfter)
-
-// 	// response, err := searchRequest.Do()
-
-// 	// if err != nil {
-// 	// 	return nil, err
-// 	// }
-
-// 	// return response, nil
-// }
+	return response, nil
+}

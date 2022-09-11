@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/ashmeet13/YoutubeDataService/source/common"
+	"github.com/ashmeet13/YoutubeDataService/source/worker"
 )
 
 func main() {
@@ -13,12 +14,12 @@ func main() {
 		WithField("MongoDatabase", config.MongoDatabaseName).
 		Info("Initalising Server")
 
-	// workerHandler, err := worker.NewWorkerHandler(config.YoutubeAPIKeys)
+	workerHandler, err := worker.NewWorkerHandler(config.YoutubeAPIKeys)
 
-	// if err != nil {
-	// 	logger.Fatal("Failed to init worker")
-	// }
+	if err != nil {
+		logger.Fatal("Failed to init worker")
+	}
 
-	// workerHandler.Start()
+	workerHandler.Start()
 	// server.Start()
 }

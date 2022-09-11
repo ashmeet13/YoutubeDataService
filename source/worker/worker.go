@@ -36,36 +36,25 @@ we have in our Database. This key is used to page results on the API.
 */
 
 type WorkerHandler struct {
-	query             string
-	publishedTime     time.Time
-	apiKeys           []string
-	apiKeyIndex       int
-	lastInsertedIndex int
-	youtubeHandler    *youtube_handler.YoutubeHandler
-	videoMetadataImpl storage.VideoMetadataInterface
+	query string
+
+	apiKeys               []string
+	apiKeyIndex           int
+	currentPublishedTime  time.Time
+	previousPublishedTime time.Time
+	nextPageToken         string
+	youtubeHandler        *youtube_handler.YoutubeHandler
+	videoMetadataImpl     storage.VideoMetadataInterface
 }
 
 func NewWorkerHandler(apiKeys []string) (*WorkerHandler, error) {
-	videoMetadataImpl := storage.NewVideoMetadataImpl()
-
-	lastInsertedMetadata, err := videoMetadataImpl.FindLastInsertedMetadata()
-	if err != nil {
-		return nil, err
-	}
-
-	lastInsertedMetadataIndex := 0
-	if lastInsertedMetadata != nil {
-		lastInsertedMetadataIndex = lastInsertedMetadata.DocumentIndex
-	}
-
 	return &WorkerHandler{
-		query:             "official|cricket|football|tennis|boating|sailing|food|minecraft|gaming|news|new",
-		publishedTime:     time.Now().UTC().Add(-1 * time.Hour),
-		apiKeys:           apiKeys,
-		apiKeyIndex:       0,
-		lastInsertedIndex: lastInsertedMetadataIndex,
-		youtubeHandler:    youtube_handler.NewYoutubeHandler(apiKeys[0]),
-		videoMetadataImpl: storage.NewVideoMetadataImpl(),
+		query:                "official|cricket|football|tennis|boating|sailing|food|minecraft|gaming|news|new",
+		currentPublishedTime: time.Now().UTC().Add(-1 * time.Hour),
+		apiKeys:              apiKeys,
+		apiKeyIndex:          0,
+		youtubeHandler:       youtube_handler.NewYoutubeHandler(apiKeys[0]),
+		videoMetadataImpl:    storage.NewVideoMetadataImpl(),
 	}, nil
 }
 
@@ -104,20 +93,23 @@ func (h *WorkerHandler) FetchNextAPIKey() string {
 func (h *WorkerHandler) Execute() error {
 	logger := common.GetLogger()
 	var err error
+	var results *youtube.SearchListResponse
 
-	logger.WithField("From", h.publishedTime).Info("Fetching Youtube Data")
-	results, err := h.youtubeHandler.DoSearchList(h.query, []string{"id", "snippet"}, "video", "date", h.publishedTime.Format(time.RFC3339))
-	h.youtubeHandler.DoSearchList(h.query, []string{"snippet"}, "video", "date", h.publishedTime.Format(time.RFC3339))
+	logger.WithField("From", h.currentPublishedTime).WithField("NextPageToken", h.nextPageToken).Info("Fetching Youtube Data")
+
+	if h.nextPageToken != "" {
+		results, err = h.youtubeHandler.DoSearchListNextPage(h.query, []string{"snippet"}, "video", "date", h.previousPublishedTime.Format(time.RFC3339), h.nextPageToken, 50)
+	} else {
+		results, err = h.youtubeHandler.DoSearchList(h.query, []string{"snippet"}, "video", "date", h.currentPublishedTime.Format(time.RFC3339), 50)
+	}
+
 	if err != nil {
 		return err
 	}
 
 	metadataToInsert := []*storage.VideoMetadata{}
 
-	// We iterate backwards creating our struct list in the order from oldest event to latest event
-	lastIndex := len(results.Items) - 1
-	for index := range results.Items {
-		result := results.Items[lastIndex-index]
+	for _, result := range results.Items {
 		videoMetadata, err := newVideoMetadata(result)
 		if err != nil {
 			return err
@@ -133,30 +125,36 @@ func (h *WorkerHandler) Execute() error {
 				h.videoMetadataImpl.UpdateOneMetadata(videoMetadata.VideoID, videoMetadata)
 			}
 		} else {
-			videoMetadata.DocumentIndex = h.lastInsertedIndex + 1
-			h.lastInsertedIndex = videoMetadata.DocumentIndex
 			metadataToInsert = append(metadataToInsert, videoMetadata)
+		}
+
+		publishedAt, err := time.Parse(time.RFC3339, result.Snippet.PublishedAt)
+		if err != nil {
+			return err
+		}
+
+		// Save the publishedAt time for the next call. This will be only used
+		// if there is no next page token. If there is a next page token, previousPublishedAt
+		// along with the token will be used.
+		if h.currentPublishedTime.Before(publishedAt) {
+			h.previousPublishedTime = h.currentPublishedTime
+			h.currentPublishedTime = publishedAt
 		}
 	}
 
+	h.nextPageToken = ""
+	if results.NextPageToken != "" {
+		h.nextPageToken = results.NextPageToken
+	}
+
 	if len(metadataToInsert) > 0 {
-		logger.WithField("InsertDocCount", len(metadataToInsert)).WithField("DocIndex", h.lastInsertedIndex-1).Info("Publishing documents to database")
+		logger.WithField("InsertDocCount", len(metadataToInsert)).Info("Publishing documents to database")
 
 		err := h.videoMetadataImpl.BulkInsertMetadata(metadataToInsert)
 		if err != nil {
 			return err
 		}
 	}
-
-	// Update the time to the most recent event
-	if len(results.Items) > 0 {
-		publishedAt, err := time.Parse(time.RFC3339, results.Items[0].Snippet.PublishedAt)
-		if err != nil {
-			return err
-		}
-		h.publishedTime = publishedAt
-	}
-
 	return nil
 }
 

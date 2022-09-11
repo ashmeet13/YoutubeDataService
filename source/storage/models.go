@@ -4,7 +4,6 @@ import "time"
 
 type VideoMetadata struct {
 	VideoID              string    `bson:"video_id"`
-	DocumentIndex        int       `bson:"document_index"`
 	Title                string    `bson:"title"`
 	Description          string    `bson:"description"`
 	DefaultThumbnailURL  string    `bson:"default_thumbnail_url"`
