@@ -2,6 +2,7 @@ package common
 
 import (
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -9,12 +10,14 @@ const (
 	MongoBaseURL      = "MONGO_BASE_URL"
 	MongoDatabaseName = "MONGO_DATABASE_NAME"
 	YoutubeAPIKeys    = "YOUTUBE_API_KEYS"
+	DefaultPageSize   = "DEFAULT_PAGE_SIZE"
 )
 
 type Configuration struct {
 	MongoBaseURL      string
 	MongoDatabaseName string
 	YoutubeAPIKeys    []string
+	DefaultPageSize   int
 }
 
 var config *Configuration
@@ -47,14 +50,25 @@ func SetupConfiguration() *Configuration {
 		return nil
 	}
 
+	defaultPageSizeString := os.Getenv(DefaultPageSize)
+	if defaultPageSizeString == "" {
+		defaultPageSizeString = "20"
+	}
+
 	keys := []string{}
 	for _, apiKey := range strings.Split(youtubeAPIKeys, ",") {
 		keys = append(keys, apiKey)
+	}
+
+	defaultPageSize, err := strconv.Atoi(defaultPageSizeString)
+	if err != nil {
+		return nil
 	}
 
 	return &Configuration{
 		MongoBaseURL:      mongoBaseURL,
 		MongoDatabaseName: mongoDatabaseName,
 		YoutubeAPIKeys:    keys,
+		DefaultPageSize:   defaultPageSize,
 	}
 }

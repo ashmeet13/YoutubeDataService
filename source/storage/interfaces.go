@@ -4,7 +4,9 @@ const VideoMetadataC = "video_metadata"
 
 type VideoMetadataInterface interface {
 	BulkInsertMetadata(videoMetadatas []*VideoMetadata) error
-	MetadataExists(id string) (bool, error)
-	FindLastInsertedIndex() (int, error)
+	FindOneMetadataWithVideoID(id string) (*VideoMetadata, error)
+	FindLastInsertedMetadata() (*VideoMetadata, error)
 	FindOneMetadata(title string, description string) (*VideoMetadata, error)
+	UpdateOneMetadata(id string, videoMetadata *VideoMetadata) error
+	FetchPage(start, end int) ([]*VideoMetadata, error)
 }

@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/ashmeet13/YoutubeDataService/source/common"
-	"github.com/ashmeet13/YoutubeDataService/source/server"
 )
 
 func main() {
@@ -21,6 +20,5 @@ func main() {
 	// }
 
 	// workerHandler.Start()
-
-	server.Start()
+	// server.Start()
 }

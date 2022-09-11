@@ -32,3 +32,36 @@ func FindOne(collectionName string, document interface{}, opts ...*options.FindO
 
 	return collection.FindOne(ctx, doc, opts...)
 }
+
+func Find(collectionName string, document interface{}, opts ...*options.FindOptions) (*mongo.Cursor, error) {
+	collection := GetCollection(collectionName)
+
+	doc, err := convertToBsonM(document)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	return collection.Find(ctx, doc, opts...)
+}
+
+func UpdateOne(collectionName string, filters interface{}, modifier interface{}, opts ...*options.UpdateOptions) (*mongo.UpdateResult, error) {
+	collection := GetCollection(collectionName)
+
+	f, err := convertToBsonM(filters)
+	if err != nil {
+		return nil, err
+	}
+
+	m, err := convertToBsonM(modifier)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	return collection.UpdateOne(ctx, f, m, opts...)
+}

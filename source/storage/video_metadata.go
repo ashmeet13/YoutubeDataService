@@ -1,6 +1,8 @@
 package storage
 
 import (
+	"context"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -36,7 +38,7 @@ func (m *VideoMetadataImpl) BulkInsertMetadata(videoMetadatas []*VideoMetadata) 
 	return nil
 }
 
-func (m *VideoMetadataImpl) MetadataExists(id string) (bool, error) {
+func (m *VideoMetadataImpl) FindOneMetadataWithVideoID(id string) (*VideoMetadata, error) {
 	query := bson.M{
 		"video_id": bson.M{"$eq": id},
 	}
@@ -47,26 +49,26 @@ func (m *VideoMetadataImpl) MetadataExists(id string) (bool, error) {
 	err := result.Decode(&decodedResult)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			return false, nil
+			return nil, nil
 		}
-		return false, err
+		return nil, err
 	}
-	return true, err
+	return &decodedResult, err
 }
 
-func (m *VideoMetadataImpl) FindLastInsertedIndex() (int, error) {
+func (m *VideoMetadataImpl) FindLastInsertedMetadata() (*VideoMetadata, error) {
 	result := FindOne(m.collection, bson.M{}, &options.FindOneOptions{Sort: bson.M{"document_index": -1}})
 
 	var decodedResult VideoMetadata
 	err := result.Decode(&decodedResult)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			return -1, nil
+			return nil, nil
 		}
-		return 0, err
+		return nil, err
 	}
 
-	return decodedResult.DocumentIndex, err
+	return &decodedResult, err
 }
 
 func (m *VideoMetadataImpl) FindOneMetadata(title string, description string) (*VideoMetadata, error) {
@@ -92,4 +94,52 @@ func (m *VideoMetadataImpl) FindOneMetadata(title string, description string) (*
 		return nil, err
 	}
 	return &decodedResult, nil
+}
+
+func (m *VideoMetadataImpl) UpdateOneMetadata(id string, videoMetadata *VideoMetadata) error {
+	filters := bson.M{
+		"video_id": bson.M{"$eq": id},
+	}
+
+	modifier := bson.M{
+		"$set": videoMetadata,
+	}
+
+	_, err := UpdateOne(m.collection, filters, modifier)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *VideoMetadataImpl) FetchPage(start, end int) ([]*VideoMetadata, error) {
+	query := bson.M{
+		"document_index": bson.M{
+			"$gt":  start,
+			"$lte": end,
+		},
+	}
+
+	cur, err := Find(m.collection, query)
+
+	err = cur.Err()
+	if err != nil {
+		return nil, err
+	}
+
+	ctx := context.Background()
+	defer cur.Close(ctx)
+
+	var metadata []*VideoMetadata
+	for cur.Next(ctx) {
+		var videoMetadata VideoMetadata
+		err := cur.Decode(&videoMetadata)
+		if err != nil {
+			return nil, err
+		}
+		metadata = append(metadata, &videoMetadata)
+	}
+
+	return metadata, nil
 }
