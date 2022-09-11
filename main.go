@@ -4,6 +4,8 @@ import (
 	"github.com/ashmeet13/YoutubeDataService/source/common"
 	"github.com/ashmeet13/YoutubeDataService/source/server"
 	"github.com/ashmeet13/YoutubeDataService/source/worker"
+
+	_ "github.com/golang/mock/mockgen/model"
 )
 
 func main() {

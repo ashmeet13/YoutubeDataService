@@ -9,6 +9,16 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+//go:generate mockgen --destination=./mock_storage/video_metadata.go github.com/ashmeet13/YoutubeDataService/source/storage VideoMetadataInterface
+type VideoMetadataInterface interface {
+	BulkInsertMetadata(videoMetadatas []*VideoMetadata) error
+	FindOneMetadataWithVideoID(id string) (*VideoMetadata, error)
+	FindLastInsertedMetadata() (*VideoMetadata, error)
+	FindOneMetadata(title string, description string) (*VideoMetadata, error)
+	UpdateOneMetadata(id string, videoMetadata *VideoMetadata) error
+	FetchPagedMetadata(timestamp time.Time, offset, limit int64) ([]*VideoMetadata, error)
+}
+
 func NewVideoMetadataImpl() *VideoMetadataImpl {
 	return &VideoMetadataImpl{
 		collection: VideoMetadataC,

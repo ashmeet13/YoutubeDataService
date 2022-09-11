@@ -13,9 +13,9 @@ func Start() {
 
 	r := mux.NewRouter()
 
-	r.HandleFunc("/search", serverHandler.SearchHandler)
-	r.HandleFunc("/fetch", serverHandler.NewFetchHandler)
-	r.HandleFunc("/fetch/{userid}/{page}", serverHandler.FetchHandler)
+	r.HandleFunc("/search", serverHandler.SearchHandler).Methods("POST")
+	r.HandleFunc("/fetch", serverHandler.NewFetchHandler).Methods("GET")
+	r.HandleFunc("/fetch/{userid}/{page}", serverHandler.FetchHandler).Methods("GET")
 
 	logger.Info("Starting server")
 	if err := http.ListenAndServe(":3000", r); err != nil {

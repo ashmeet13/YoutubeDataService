@@ -5,6 +5,13 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+//go:generate mockgen --destination=./mock_storage/user.go github.com/ashmeet13/YoutubeDataService/source/storage UserInterface
+type UserInterface interface {
+	CreateUser(user *User) error
+	ReadUser(userID string) (*User, error)
+	UpdateUser(id string, user *User) error
+}
+
 func NewUserImpl() *UserImpl {
 	return &UserImpl{
 		collection: UserC,
