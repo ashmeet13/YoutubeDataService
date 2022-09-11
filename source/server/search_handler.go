@@ -18,12 +18,13 @@ type SearchResponse struct {
 	Metadata []*storage.VideoMetadata
 }
 
-func SearchHandler(w http.ResponseWriter, r *http.Request) {
+func (h *ServerHandler) SearchHandler(w http.ResponseWriter, r *http.Request) {
 	logger := common.GetLogger()
 
 	if r.Header.Get("Content-Type") == "" || r.Header.Get("Content-Type") != "application/json" {
 		msg := "Content-Type header is not application/json"
 		http.Error(w, msg, http.StatusUnsupportedMediaType)
+		return
 	}
 
 	var searchFilters SearchFilters
@@ -41,9 +42,7 @@ func SearchHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	storageHandler := storage.NewVideoMetadataImpl()
-
-	metadata, err := storageHandler.FindOneMetadata(searchFilters.Title, searchFilters.Description)
+	metadata, err := h.storageHandler.FindOneMetadata(searchFilters.Title, searchFilters.Description)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
