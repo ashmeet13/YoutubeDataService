@@ -29,7 +29,7 @@ type ServerHandlerSuite struct {
 	serverHandler          *ServerHandler
 }
 
-func TestFetchMetricResultsSuite(t *testing.T) {
+func TestWorkerHandlerSuite(t *testing.T) {
 	suite.Run(t, new(ServerHandlerSuite))
 }
 

@@ -15,11 +15,12 @@ Worker is an async background worker that polls the Youtube API for Video events
 
 How does it work?
 
-We query the GET /search/list endpoint to fetch data with the following parameters enabled
+We query the GET /search/list endpoint to fetch data with the following parameters set
 1. Parts = snippet, this fetches us the metadata we require
 2. Type = video, we only want data for videos
 3. OrderBy = date, we get the data ordered with most recent event at the start of the response
 4. PublishedAfter = <time.RFC3339 formated date> we will be fetching all the data that was created on and after this point of time.
+5. MaxResults = 50
 
 Assumption - /search/list can return data for a video which has been updated
 
@@ -29,22 +30,27 @@ While doing so we make a DB read call to check if the video already exists.
 If it does and the published at of the new result is after the database doc, we update the doc for the video id.
 Else, we add the docs in a list to bulk insert in the end.
 
-Once we bulk insert sucessfully we update the publish time for next call which is going to be most recent doc
+While iterating we also check if the results were for a call the nextPage of previous call or is it a fresh call
+If it's a fresh call then we have recieved data ordered by date and we would use this data to set the next timestamp
+of our call
 
-In this process we also maintain a LastInsertedIndex which is an auto incrementing variable that keeps track of the most recent event that
-we have in our Database. This key is used to page results on the API.
+Finally we check
 */
 
 type WorkerHandler struct {
 	query string
 
-	apiKeys               []string
-	apiKeyIndex           int
+	apiKeys       []string
+	nextPageToken string
+
+	sleepTime   int
+	apiKeyIndex int
+
 	currentPublishedTime  time.Time
 	previousPublishedTime time.Time
-	nextPageToken         string
-	youtubeHandler        *youtube_handler.YoutubeHandler
-	videoMetadataImpl     storage.VideoMetadataInterface
+
+	youtubeHandler       youtube_handler.YoutubeInterface
+	videoMetadataHandler storage.VideoMetadataInterface
 }
 
 func NewWorkerHandler(apiKeys []string) (*WorkerHandler, error) {
@@ -53,12 +59,13 @@ func NewWorkerHandler(apiKeys []string) (*WorkerHandler, error) {
 		currentPublishedTime: time.Now().UTC(),
 		apiKeys:              apiKeys,
 		apiKeyIndex:          0,
+		sleepTime:            10,
 		youtubeHandler:       youtube_handler.NewYoutubeHandler(apiKeys[0]),
-		videoMetadataImpl:    storage.NewVideoMetadataImpl(),
+		videoMetadataHandler: storage.NewVideoMetadataImpl(),
 	}, nil
 }
 
-// Starts the worker and executes it at an interval of 10 seconds
+// Starts the worker and executes it at an interval of 10 seconds or 5 seconds
 func (h *WorkerHandler) Start() {
 	logger := common.GetLogger()
 
@@ -73,7 +80,8 @@ func (h *WorkerHandler) Start() {
 				break
 			}
 		}
-		time.Sleep(10 * time.Second)
+		logger.WithField("SleepDuration", h.sleepTime).Info("Worker Execution Completed")
+		time.Sleep(time.Duration(h.sleepTime) * time.Second)
 	}
 
 }
@@ -90,15 +98,18 @@ func (h *WorkerHandler) FetchNextAPIKey() string {
 	return h.apiKeys[h.apiKeyIndex]
 }
 
+// Executes - To Fetch Data and Publish to DB
 func (h *WorkerHandler) Execute() error {
 	logger := common.GetLogger()
 	var err error
 	var results *youtube.SearchListResponse
+	// Reset sleep time for next call
+	h.sleepTime = 10
 
 	// 1. If NextPageToken present
-	//			Request Paginated Response from PreviousPublishedAt
+	//			Request Paginated Response from PreviousPublishedAt, i.e. previous call next page
 	//    Else,
-	// 			Request Response from CurrentPublishedAt
+	// 			Request Response from CurrentPublishedAt, i.e. fresh call
 	if h.nextPageToken != "" {
 		logger.WithField("From", h.currentPublishedTime).WithField("NextPageToken", h.nextPageToken).Info("Fetching Youtube Data for new DateTime")
 		results, err = h.youtubeHandler.DoSearchListNextPage(h.query, []string{"snippet"}, "video", "date", h.previousPublishedTime.Format(time.RFC3339), h.nextPageToken, 50)
@@ -111,61 +122,64 @@ func (h *WorkerHandler) Execute() error {
 		return err
 	}
 
-	logger.WithField("TotalDocuments", len(results.Items)).Info("Recieved Youtube Result")
+	logger.Info("Recieved Youtube Result")
 
 	metadataToInsert := []*storage.VideoMetadata{}
-	// 2. Iterate over the results
+	// 2. Iterate over the results.Items to fetch required Data
 	for _, result := range results.Items {
+
+		// 3. Format it into required Struct
 		videoMetadata, err := newVideoMetadata(result)
 		if err != nil {
 			return err
 		}
 
-		// 3. Check if video already present
-		storageMetadata, err := h.videoMetadataImpl.FindOneMetadataWithVideoID(videoMetadata.VideoID)
+		// 4. Check if video already present
+		storageMetadata, err := h.videoMetadataHandler.FindOneMetadataWithVideoID(videoMetadata.VideoID)
 		if err != nil {
 			return err
 		}
 
 		if storageMetadata != nil {
-			// 4. If present and has been updated, update value in DB
+			// 5. If present and has been updated, update value in DB
 			if storageMetadata.PublishedAt.Before(videoMetadata.PublishedAt) {
 				logger.WithField("VideoID", videoMetadata.VideoID).Info("Updating Document")
-				h.videoMetadataImpl.UpdateOneMetadata(videoMetadata.VideoID, videoMetadata)
+				h.videoMetadataHandler.UpdateOneMetadata(videoMetadata.VideoID, videoMetadata)
 			}
 		} else {
-			// 5. If not present, add in list to bulk insert later
+			// 6. If not present, add in list to bulk insert later
 			metadataToInsert = append(metadataToInsert, videoMetadata)
 		}
+
+		// 7. If no nextPageToken was used, update the currentPublishedTime to use for next call fresh call
+		if h.nextPageToken == "" {
+			publishedAt, err := time.Parse(time.RFC3339, result.Snippet.PublishedAt)
+			if err != nil {
+				return err
+			}
+
+			// Save the publishedAt time for the next call. This will be only used
+			// if there is no next page token. If there is a next page token, previousPublishedAt
+			// along with the token will be used.
+			if h.currentPublishedTime.Before(publishedAt) {
+				h.previousPublishedTime = h.currentPublishedTime
+				h.currentPublishedTime = publishedAt
+			}
+		}
 	}
 
-	// 6. If no page taken was used, update the currentPublishedTime to use for next call
-	if h.nextPageToken == "" && len(results.Items) > 0 {
-		publishedAt, err := time.Parse(time.RFC3339, results.Items[0].Snippet.PublishedAt)
-		if err != nil {
-			return err
-		}
-
-		// Save the publishedAt time for the next call. This will be only used
-		// if there is no next page token. If there is a next page token, previousPublishedAt
-		// along with the token will be used.
-		if h.currentPublishedTime.Before(publishedAt) {
-			h.previousPublishedTime = h.currentPublishedTime
-			h.currentPublishedTime = publishedAt
-		}
-	}
-
-	// 7. Reset token for next call
+	// 8. Reset token for next call, if a page token is available set it and reduce sleep time
 	h.nextPageToken = ""
 	if results.NextPageToken != "" {
 		h.nextPageToken = results.NextPageToken
+		h.sleepTime = 5
 	}
 
-	// 8. Bulk Insert into DB
+	// 9. Bulk Insert into DB
 	if len(metadataToInsert) > 0 {
 		logger.WithField("InsertDocumentCount", len(metadataToInsert)).Info("Publishing documents to database")
 
-		err := h.videoMetadataImpl.BulkInsertMetadata(metadataToInsert)
+		err := h.videoMetadataHandler.BulkInsertMetadata(metadataToInsert)
 		if err != nil {
 			return err
 		}

@@ -8,8 +8,14 @@ import (
 	"google.golang.org/api/youtube/v3"
 )
 
+//go:generate mockgen --destination=./mock_youtube/youtube.go github.com/ashmeet13/YoutubeDataService/source/youtube YoutubeInterface
+type YoutubeInterface interface {
+	UpdateAPIKey(apiKey string) error
+	DoSearchList(query string, parts []string, resourceType string, orderBy string, publishedAfter string, maxResults int) (*youtube.SearchListResponse, error)
+	DoSearchListNextPage(query string, parts []string, resourceType string, orderBy string, publishedAfter string, nextPageToken string, maxResults int) (*youtube.SearchListResponse, error)
+}
+
 type YoutubeHandler struct {
-	apiKey        string
 	youtubeClient *youtube.Service
 }
 
@@ -21,7 +27,6 @@ func NewYoutubeHandler(apiKey string) *YoutubeHandler {
 	}
 
 	return &YoutubeHandler{
-		apiKey:        apiKey,
 		youtubeClient: youtubeClient,
 	}
 }
@@ -35,7 +40,6 @@ func (h *YoutubeHandler) UpdateAPIKey(apiKey string) error {
 	}
 
 	h.youtubeClient = youtubeClient
-	h.apiKey = apiKey
 	return nil
 }
 
