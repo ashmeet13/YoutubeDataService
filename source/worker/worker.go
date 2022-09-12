@@ -53,9 +53,9 @@ type WorkerHandler struct {
 	videoMetadataHandler storage.VideoMetadataInterface
 }
 
-func NewWorkerHandler(apiKeys []string) (*WorkerHandler, error) {
+func NewWorkerHandler(query string, apiKeys []string) (*WorkerHandler, error) {
 	return &WorkerHandler{
-		query:                "official|cricket|football|tennis|boating|sailing|food|minecraft|gaming|news|new",
+		query:                query,
 		currentPublishedTime: time.Now().UTC(),
 		apiKeys:              apiKeys,
 		apiKeyIndex:          0,
@@ -100,11 +100,13 @@ func (h *WorkerHandler) FetchNextAPIKey() string {
 
 // Executes - To Fetch Data and Publish to DB
 func (h *WorkerHandler) Execute() error {
-	logger := common.GetLogger()
-	var err error
-	var results *youtube.SearchListResponse
 	// Reset sleep time for next call
 	h.sleepTime = 10
+
+	logger := common.GetLogger()
+
+	var err error
+	var results *youtube.SearchListResponse
 
 	// 1. If NextPageToken present
 	//			Request Paginated Response from PreviousPublishedAt, i.e. previous call next page
@@ -201,20 +203,22 @@ func newVideoMetadata(result *youtube.SearchResult) (*storage.VideoMetadata, err
 		PublishedAt: publishedAtTime,
 	}
 
-	if result.Snippet.Thumbnails.Default != nil {
-		videoData.DefaultThumbnailURL = result.Snippet.Thumbnails.Default.Url
-	}
-	if result.Snippet.Thumbnails.Maxres != nil {
-		videoData.MaxresThumbnailURL = result.Snippet.Thumbnails.Maxres.Url
-	}
-	if result.Snippet.Thumbnails.High != nil {
-		videoData.HighThumbnailURL = result.Snippet.Thumbnails.High.Url
-	}
-	if result.Snippet.Thumbnails.Medium != nil {
-		videoData.MediumThumbnailURL = result.Snippet.Thumbnails.Medium.Url
-	}
-	if result.Snippet.Thumbnails.Standard != nil {
-		videoData.StandardThumbnailURL = result.Snippet.Thumbnails.Standard.Url
+	if result.Snippet.Thumbnails != nil {
+		if result.Snippet.Thumbnails.Default != nil {
+			videoData.DefaultThumbnailURL = result.Snippet.Thumbnails.Default.Url
+		}
+		if result.Snippet.Thumbnails.Maxres != nil {
+			videoData.MaxresThumbnailURL = result.Snippet.Thumbnails.Maxres.Url
+		}
+		if result.Snippet.Thumbnails.High != nil {
+			videoData.HighThumbnailURL = result.Snippet.Thumbnails.High.Url
+		}
+		if result.Snippet.Thumbnails.Medium != nil {
+			videoData.MediumThumbnailURL = result.Snippet.Thumbnails.Medium.Url
+		}
+		if result.Snippet.Thumbnails.Standard != nil {
+			videoData.StandardThumbnailURL = result.Snippet.Thumbnails.Standard.Url
+		}
 	}
 
 	return videoData, nil

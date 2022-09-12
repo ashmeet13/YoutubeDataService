@@ -11,6 +11,7 @@ const (
 	MongoDatabaseName = "MONGO_DATABASE_NAME"
 	YoutubeAPIKeys    = "YOUTUBE_API_KEYS"
 	DefaultPageSize   = "DEFAULT_PAGE_SIZE"
+	YoutubeQuery      = "YOUTUBE_QUERY"
 )
 
 type Configuration struct {
@@ -18,6 +19,7 @@ type Configuration struct {
 	MongoDatabaseName string
 	YoutubeAPIKeys    []string
 	DefaultPageSize   int
+	YoutubeQuery      string
 }
 
 var config *Configuration
@@ -50,6 +52,12 @@ func SetupConfiguration() *Configuration {
 		return nil
 	}
 
+	youtubeQuery := os.Getenv(YoutubeQuery)
+	if youtubeQuery == "" {
+		logger.Fatalln("Could not find environment variable", YoutubeQuery)
+		return nil
+	}
+
 	defaultPageSizeString := os.Getenv(DefaultPageSize)
 	if defaultPageSizeString == "" {
 		defaultPageSizeString = "5"
@@ -70,5 +78,6 @@ func SetupConfiguration() *Configuration {
 		MongoDatabaseName: mongoDatabaseName,
 		YoutubeAPIKeys:    keys,
 		DefaultPageSize:   defaultPageSize,
+		YoutubeQuery:      youtubeQuery,
 	}
 }

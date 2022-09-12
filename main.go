@@ -23,7 +23,7 @@ func main() {
 	logger.Info("Building Indexes")
 	storage.BuildIndexes(context.Background())
 
-	workerHandler, err := worker.NewWorkerHandler(config.YoutubeAPIKeys)
+	workerHandler, err := worker.NewWorkerHandler(config.YoutubeQuery, config.YoutubeAPIKeys)
 
 	if err != nil {
 		logger.Fatal("Failed to init worker")

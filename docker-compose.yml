@@ -16,3 +16,4 @@ services:
       - MONGO_DATABASE_NAME=youtube_service
       - YOUTUBE_API_KEYS=[Comma Separated API Keys]
       - DEFAULT_PAGE_SIZE=5
+      - YOUTUBE_QUERY=official|cricket
