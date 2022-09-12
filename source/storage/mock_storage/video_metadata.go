@@ -64,21 +64,6 @@ func (mr *MockVideoMetadataInterfaceMockRecorder) FetchPagedMetadata(arg0, arg1,
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchPagedMetadata", reflect.TypeOf((*MockVideoMetadataInterface)(nil).FetchPagedMetadata), arg0, arg1, arg2)
 }
 
-// FindLastInsertedMetadata mocks base method.
-func (m *MockVideoMetadataInterface) FindLastInsertedMetadata() (*storage.VideoMetadata, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindLastInsertedMetadata")
-	ret0, _ := ret[0].(*storage.VideoMetadata)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// FindLastInsertedMetadata indicates an expected call of FindLastInsertedMetadata.
-func (mr *MockVideoMetadataInterfaceMockRecorder) FindLastInsertedMetadata() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindLastInsertedMetadata", reflect.TypeOf((*MockVideoMetadataInterface)(nil).FindLastInsertedMetadata))
-}
-
 // FindOneMetadata mocks base method.
 func (m *MockVideoMetadataInterface) FindOneMetadata(arg0, arg1 string) (*storage.VideoMetadata, error) {
 	m.ctrl.T.Helper()

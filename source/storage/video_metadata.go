@@ -13,7 +13,6 @@ import (
 type VideoMetadataInterface interface {
 	BulkInsertMetadata(videoMetadatas []*VideoMetadata) error
 	FindOneMetadataWithVideoID(id string) (*VideoMetadata, error)
-	FindLastInsertedMetadata() (*VideoMetadata, error)
 	FindOneMetadata(title string, description string) (*VideoMetadata, error)
 	UpdateOneMetadata(id string, videoMetadata *VideoMetadata) error
 	FetchPagedMetadata(timestamp time.Time, offset, limit int64) ([]*VideoMetadata, error)
@@ -64,21 +63,6 @@ func (m *VideoMetadataImpl) FindOneMetadataWithVideoID(id string) (*VideoMetadat
 		}
 		return nil, err
 	}
-	return &decodedResult, err
-}
-
-func (m *VideoMetadataImpl) FindLastInsertedMetadata() (*VideoMetadata, error) {
-	result := FindOne(m.collection, bson.M{}, &options.FindOneOptions{Sort: bson.M{"document_index": -1}})
-
-	var decodedResult VideoMetadata
-	err := result.Decode(&decodedResult)
-	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return nil, nil
-		}
-		return nil, err
-	}
-
 	return &decodedResult, err
 }
 
