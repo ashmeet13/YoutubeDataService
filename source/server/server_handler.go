@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -199,6 +200,13 @@ func (h *ServerHandler) FetchHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if user == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		msg := fmt.Sprintf("Could not find user with userid %s", userID)
+		http.Error(w, msg, http.StatusInternalServerError)
 		return
 	}
 

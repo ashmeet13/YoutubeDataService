@@ -14,7 +14,7 @@ Broadly, the service has two main components - the `Worker` and the `Server`.
 `Worker` is our async background job that every few seconds requests new data from the Youtube API and stores into a MongoDB instance.
 
 `Server` exposes two APIs to fetch this data. 
-- `POST \search` - This takes in a JSON body with two components `Title` and `Description` to search the database against. Either or both of the two parameters need to be provided.
+- `POST \search` - This takes in a JSON body with two components `Title` and `Description` to search the database against. Both the parameters cannot be empty. This endpoint uses MongoDB text indexes to perform text searches over the documents.
 
 ```json
 {
@@ -59,3 +59,5 @@ You would have to set the `YOUTUBE_API_KEYS` variable in `docker-compose.yml` fi
 You can set these up in `devsetup/setup.sh` for quick setups later
 
 Running the server is running `go run main.go`
+
+You can find a postman collection under `devsetup` folder to help with structure of API Calls

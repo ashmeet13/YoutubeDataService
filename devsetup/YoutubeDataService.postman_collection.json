@@ -1,0 +1,101 @@
+{
+	"info": {
+		"_postman_id": "84b66a54-a1b3-4c4e-a875-a8e2c71d2eff",
+		"name": "YoutubeDataService",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Search",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"Title\" : \"\",\n    \"Description\" : \"\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:3000/search",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "3000",
+					"path": [
+						"search"
+					]
+				},
+				"description": "Queries the MongoDB for matching title and description objects and returns them"
+			},
+			"response": []
+		},
+		{
+			"name": "FetchUser",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:3000/fetch?userid=foo",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "3000",
+					"path": [
+						"fetch"
+					],
+					"query": [
+						{
+							"key": "userid",
+							"value": "foo"
+						}
+					]
+				},
+				"description": "Creates or Updates a user with UserID `foo`"
+			},
+			"response": []
+		},
+		{
+			"name": "Fetch",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:3000/fetch/foo/1",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "3000",
+					"path": [
+						"fetch",
+						"foo",
+						"1"
+					]
+				},
+				"description": "Fetches the data for the userid `foo`"
+			},
+			"response": []
+		}
+	]
+}
