@@ -34,7 +34,6 @@ type SearchFilters struct {
 }
 
 type SearchResponse struct {
-	Message  string
 	Metadata []*storage.VideoMetadata
 }
 
@@ -44,12 +43,17 @@ type FetchResponse struct {
 	Metadata []*storage.VideoMetadata
 }
 
+// Handles /search request
 func (h *ServerHandler) SearchHandler(w http.ResponseWriter, r *http.Request) {
 	logger := common.GetLogger()
+	logger.Info("New Search Request")
+
 	var err error
 	var matchedDocs []*storage.VideoMetadata
 
+	// Make sure JSON body is present
 	if r.Header.Get("Content-Type") == "" || r.Header.Get("Content-Type") != "application/json" {
+		logger.Error("Content Type not correct")
 		w.WriteHeader(http.StatusUnsupportedMediaType)
 		msg := "Content-Type header is not application/json"
 		http.Error(w, msg, http.StatusUnsupportedMediaType)
@@ -58,23 +62,33 @@ func (h *ServerHandler) SearchHandler(w http.ResponseWriter, r *http.Request) {
 
 	var searchFilters SearchFilters
 
+	// Fetch and decode the JSON Body
 	err = json.NewDecoder(r.Body).Decode(&searchFilters)
 	if err != nil {
+		logger.WithError(err).Error("Failed to read request body")
 		w.WriteHeader(http.StatusBadRequest)
 		msg := "Failed to read request body"
 		http.Error(w, msg, http.StatusBadRequest)
 		return
 	}
 
+	// Make sure we have some search parameter
 	if searchFilters.Title == "" && searchFilters.Description == "" {
+		logger.Error("Both title and description are empty")
 		w.WriteHeader(http.StatusBadRequest)
 		http.Error(w, "Title and Description both cannot be empty", http.StatusBadRequest)
 		return
 	}
 
+	logger = logger.WithField("Title", searchFilters.Title).
+		WithField("Description", searchFilters.Description)
+
+	// Make DB call to search matching titles
 	if searchFilters.Title != "" {
+		logger.Info("Searching data matching the title")
 		titleMatchedDocs, err := h.videoMetadataHandler.FindMetadataTextSearch(searchFilters.Title)
 		if err != nil {
+			logger.WithError(err).Error("Failed to get data from database")
 			w.WriteHeader(http.StatusInternalServerError)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -82,9 +96,12 @@ func (h *ServerHandler) SearchHandler(w http.ResponseWriter, r *http.Request) {
 		matchedDocs = append(matchedDocs, titleMatchedDocs...)
 	}
 
+	// Make DB call to search matching descriptions
 	if searchFilters.Description != "" {
+		logger.Info("Searching data matching the description")
 		desMatchedDocs, err := h.videoMetadataHandler.FindMetadataTextSearch(searchFilters.Description)
 		if err != nil {
+			logger.WithError(err).Error("Failed to get data from database")
 			w.WriteHeader(http.StatusInternalServerError)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -92,14 +109,17 @@ func (h *ServerHandler) SearchHandler(w http.ResponseWriter, r *http.Request) {
 		matchedDocs = append(matchedDocs, desMatchedDocs...)
 	}
 
+	// Build and return response
 	response := &SearchResponse{
-		Message:  "Ok",
 		Metadata: matchedDocs,
 	}
 
 	jsonResponse, err := json.Marshal(response)
 	if err != nil {
 		logger.WithError(err).Error("Error happened in JSON marshal")
+		w.WriteHeader(http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
