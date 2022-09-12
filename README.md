@@ -56,8 +56,6 @@ We also have two text indexs on the `Title` and `Description` field to enable a 
 
 If you are using docker, a simple `docker compose up` should do the work. This will start both the MongoDB and the service.
 
-Running `docker compose up --attach youtube_service` will disable the logs for mongo container.
-
 You would have to set the `YOUTUBE_API_KEYS` variable in `docker-compose.yml` file. This can be a comma seperated list of keys and the backend would cycle through these keys in case one key exceeds it's quota.
 
 ## Setting it up for development
