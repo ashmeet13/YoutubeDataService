@@ -14,7 +14,14 @@ Broadly, the service has two main components - the `Worker` and the `Server`.
 `Worker` is our async background job that every few seconds requests new data from the Youtube API and stores into a MongoDB instance.
 
 `Server` exposes two APIs to fetch this data. 
-- `POST /search` - This takes in a JSON body with two components `Title` and `Description` to search the database against. Both the parameters cannot be empty. This endpoint uses MongoDB text indexes to perform text searches over the documents.
+
+- `GET /fetch` - This will return a UniqueID `userid` back that can be used to fetch the data in pages. You can set custom `userid` and `pagesize` by setting them in url parameters.
+
+Example - `/fetch?userid=ashmeet&pagesize=3`
+
+- `GET /fetch/<userid>/<pagenumber>` - This will return the data for the `userid` for the `pagenumber` with the `pagesize` that was mentioned in `GET /fetch`. If no pagesize was mentioned the default is 5
+
+- `POST /search` - This takes in a JSON body with two components `Title` and `Description` to search the database against. Both the parameters cannot be empty at the same time. Search scans through the database to find documents with similar `Title` and `Description` and returns a list of the videos found. This endpoint uses MongoDB text indexes to perform text searches over the documents.
 
 ```json
 {
@@ -22,12 +29,6 @@ Broadly, the service has two main components - the `Worker` and the `Server`.
     "Description" : "Description To Search",
 }
 ```
-
-- `GET /fetch` - This will return a UniqueID `userid` back that can be used to fetch the data in pages. You can set custom `userid` and `pagesize` by setting them in url parameters.
-
-Example - `/fetch?userid=ashmeet&pagesize=3`
-
-- `GET /fetch/<userid>/<pagenumber>` - This will return the data for the `userid` for the `pagenumber` with the `pagesize` that was mentioned in `GET /fetch`. If no pagesize was mentioned the default is 5
 
 ## Why do I require a User?
 
