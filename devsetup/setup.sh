@@ -2,6 +2,6 @@
 
 export MONGO_BASE_URL=mongodb://localhost:27017
 export MONGO_DATABASE_NAME=youtube_data
-export YOUTUBE_QUERY=official|cricket
-export YOUTUBE_API_KEYS=CommaSeperatedString
+export YOUTUBE_QUERY="official|cricket"
+export YOUTUBE_API_KEYS=AIzaSyAePTfZMYCWFJVU0wECbK2pxFpRhxwIpxE,AIzaSyDdffCGhWALagFG1zhOWkh8UhD939NBBD8,AIzaSyCRvLTKE2Vzmt_TmpSB78JIa-bRDsjrQP8,AIzaSyC_NpuMNd5AAj64Aza0FWhkeHC7jCnkLJY
 export DEFAULT_PAGE_SIZE=5

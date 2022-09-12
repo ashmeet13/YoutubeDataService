@@ -76,6 +76,7 @@ func (h *WorkerHandler) Start() {
 			if strings.Contains(err.Error(), "quotaExceeded") {
 				logger.Info("API Key Quota Exceeded")
 				h.youtubeHandler.UpdateAPIKey(h.FetchNextAPIKey())
+				h.sleepTime = 2
 			} else {
 				logger.WithError(err).Error("Error in worker, exiting worker")
 				break

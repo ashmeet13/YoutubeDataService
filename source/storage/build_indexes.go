@@ -35,5 +35,15 @@ func BuildIndexes(ctx context.Context) {
 			},
 			Options: options.Index().SetUnique(false).SetBackground(true),
 		})
+		db.Collection(VideoMetadataC).Indexes().CreateOne(ctx, mongo.IndexModel{
+			Keys: bsonx.Doc{
+				{Key: "title", Value: bsonx.String("text")},
+			},
+		})
+		db.Collection(VideoMetadataC).Indexes().CreateOne(ctx, mongo.IndexModel{
+			Keys: bsonx.Doc{
+				{Key: "description", Value: bsonx.String("text")},
+			},
+		})
 	})
 }

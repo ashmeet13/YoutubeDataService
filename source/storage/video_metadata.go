@@ -13,9 +13,10 @@ import (
 type VideoMetadataInterface interface {
 	BulkInsertMetadata(videoMetadatas []*VideoMetadata) error
 	FindOneMetadataWithVideoID(id string) (*VideoMetadata, error)
-	FindOneMetadata(title string, description string) (*VideoMetadata, error)
 	UpdateOneMetadata(id string, videoMetadata *VideoMetadata) error
 	FetchPagedMetadata(timestamp time.Time, offset, limit int64) ([]*VideoMetadata, error)
+	FindOneMetadata(title string, description string) (*VideoMetadata, error)
+	FindOneMetadataTextSearch(searchText string) ([]*VideoMetadata, error)
 }
 
 func NewVideoMetadataImpl() *VideoMetadataImpl {
@@ -120,6 +121,34 @@ func (m *VideoMetadataImpl) FetchPagedMetadata(timestamp time.Time, offset, limi
 	}
 
 	cur, err := Find(m.collection, query, queryOpts)
+
+	err = cur.Err()
+	if err != nil {
+		return nil, err
+	}
+
+	ctx := context.Background()
+	defer cur.Close(ctx)
+
+	var metadata []*VideoMetadata
+	for cur.Next(ctx) {
+		var videoMetadata VideoMetadata
+		err := cur.Decode(&videoMetadata)
+		if err != nil {
+			return nil, err
+		}
+		metadata = append(metadata, &videoMetadata)
+	}
+
+	return metadata, nil
+}
+
+func (m *VideoMetadataImpl) FindOneMetadataTextSearch(searchText string) ([]*VideoMetadata, error) {
+	query := bson.M{
+		"$text": bson.M{"$search": searchText},
+	}
+
+	cur, err := Find(m.collection, query)
 
 	err = cur.Err()
 	if err != nil {

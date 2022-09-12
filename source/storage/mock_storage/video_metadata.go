@@ -79,6 +79,21 @@ func (mr *MockVideoMetadataInterfaceMockRecorder) FindOneMetadata(arg0, arg1 int
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindOneMetadata", reflect.TypeOf((*MockVideoMetadataInterface)(nil).FindOneMetadata), arg0, arg1)
 }
 
+// FindOneMetadataTextSearch mocks base method.
+func (m *MockVideoMetadataInterface) FindOneMetadataTextSearch(arg0 string) ([]*storage.VideoMetadata, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FindOneMetadataTextSearch", arg0)
+	ret0, _ := ret[0].([]*storage.VideoMetadata)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FindOneMetadataTextSearch indicates an expected call of FindOneMetadataTextSearch.
+func (mr *MockVideoMetadataInterfaceMockRecorder) FindOneMetadataTextSearch(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindOneMetadataTextSearch", reflect.TypeOf((*MockVideoMetadataInterface)(nil).FindOneMetadataTextSearch), arg0)
+}
+
 // FindOneMetadataWithVideoID mocks base method.
 func (m *MockVideoMetadataInterface) FindOneMetadataWithVideoID(arg0 string) (*storage.VideoMetadata, error) {
 	m.ctrl.T.Helper()
