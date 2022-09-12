@@ -6,8 +6,6 @@ services:
       - ./mongo_data:/data/db
     ports:
       - 27017:27017
-    logging:
-      driver: none
   youtube_service:
     build: .
     container_name: youtube_service

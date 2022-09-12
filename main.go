@@ -19,16 +19,16 @@ func main() {
 		WithField("MongoURL", config.MongoBaseURL).
 		WithField("MongoDatabase", config.MongoDatabaseName).
 		Info("Initalising Server")
+	storage.Init()
 
 	logger.Info("Building Indexes")
 	storage.BuildIndexes(context.Background())
 
 	workerHandler, err := worker.NewWorkerHandler(config.YoutubeQuery, config.YoutubeAPIKeys)
-
 	if err != nil {
 		logger.Fatal("Failed to init worker")
 	}
-
 	go workerHandler.Start()
+
 	server.Start()
 }

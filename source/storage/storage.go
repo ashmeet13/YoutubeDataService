@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"time"
 
 	"github.com/ashmeet13/YoutubeDataService/source/common"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -30,7 +31,14 @@ func GetDatabase() *mongo.Database {
 	return mongoClient.Database(config.MongoDatabaseName)
 }
 
+func Init() {
+	config := common.GetConfiguration()
+	initaliseMongoClient(config.MongoBaseURL)
+}
+
 func initaliseMongoClient(mongoBaseURL string) {
+	logger := common.GetLogger()
+
 	var err error
 	mongoClientOptions := options.Client().ApplyURI(mongoBaseURL)
 
@@ -41,8 +49,14 @@ func initaliseMongoClient(mongoBaseURL string) {
 		panic("Unable to connect to mongo")
 	}
 
-	err = mongoClient.Ping(ctx, readpref.Primary())
-	if err != nil {
-		panic("Unable to ping mongo server")
+	for {
+		err = mongoClient.Ping(ctx, readpref.Primary())
+		if err != nil {
+			logger.Info("Unable to ping mongo server, sleeping for 5 seconds")
+			time.Sleep(5 * time.Second)
+		} else {
+			break
+		}
 	}
+
 }
