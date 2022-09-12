@@ -26,14 +26,14 @@ func BuildIndexes(ctx context.Context) {
 			Keys: bsonx.Doc{
 				{Key: "video_id", Value: bsonx.Int32(1)},
 			},
-			Options: options.Index().SetUnique(true).SetBackground(true),
+			Options: options.Index().SetUnique(false).SetBackground(true),
 		})
 
 		db.Collection(VideoMetadataC).Indexes().CreateOne(ctx, mongo.IndexModel{
 			Keys: bsonx.Doc{
 				{Key: "published_at", Value: bsonx.Int32(-1)},
 			},
-			Options: options.Index().SetUnique(true).SetBackground(true),
+			Options: options.Index().SetUnique(false).SetBackground(true),
 		})
 	})
 }

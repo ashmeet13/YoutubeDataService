@@ -6,6 +6,8 @@ services:
       - ./mongo_data:/data/db
     ports:
       - 27017:27017
+    logging:
+      driver: none
   youtube_service:
     build: .
     container_name: youtube_service
@@ -14,6 +16,6 @@ services:
     environment:
       - MONGO_BASE_URL=mongodb://mongo:27017
       - MONGO_DATABASE_NAME=youtube_service
-      - YOUTUBE_API_KEYS=[Comma Separated API Keys]
+      - YOUTUBE_API_KEYS=AIzaSyAePTfZMYCWFJVU0wECbK2pxFpRhxwIpxE,AIzaSyDdffCGhWALagFG1zhOWkh8UhD939NBBD8,AIzaSyCRvLTKE2Vzmt_TmpSB78JIa-bRDsjrQP8,AIzaSyC_NpuMNd5AAj64Aza0FWhkeHC7jCnkLJY
       - DEFAULT_PAGE_SIZE=5
-      - YOUTUBE_QUERY=official|cricket
+      - YOUTUBE_QUERY=official|cricket|news|game|football|tennis|sport|weather

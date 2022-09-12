@@ -62,6 +62,7 @@ func NewWorkerHandler(query string, apiKeys []string) (*WorkerHandler, error) {
 		sleepTime:            10,
 		youtubeHandler:       youtube_handler.NewYoutubeHandler(apiKeys[0]),
 		videoMetadataHandler: storage.NewVideoMetadataImpl(),
+		nextPageToken:        "",
 	}, nil
 }
 
@@ -113,10 +114,10 @@ func (h *WorkerHandler) Execute() error {
 	//    Else,
 	// 			Request Response from CurrentPublishedAt, i.e. fresh call
 	if h.nextPageToken != "" {
-		logger.WithField("From", h.currentPublishedTime).WithField("NextPageToken", h.nextPageToken).Info("Fetching Youtube Data for new DateTime")
+		logger.WithField("From", h.currentPublishedTime).WithField("NextPageToken", h.nextPageToken).Info("Fetching Youtube Data for next Page")
 		results, err = h.youtubeHandler.DoSearchListNextPage(h.query, []string{"snippet"}, "video", "date", h.previousPublishedTime.Format(time.RFC3339), h.nextPageToken, 50)
 	} else {
-		logger.WithField("From", h.currentPublishedTime).WithField("NextPageToken", h.nextPageToken).Info("Fetching Youtube Data for next Page")
+		logger.WithField("From", h.currentPublishedTime).Info("Fetching Youtube Data for new DateTime")
 		results, err = h.youtubeHandler.DoSearchList(h.query, []string{"snippet"}, "video", "date", h.currentPublishedTime.Format(time.RFC3339), 50)
 	}
 
