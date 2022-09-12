@@ -16,6 +16,6 @@ services:
     environment:
       - MONGO_BASE_URL=mongodb://mongo:27017
       - MONGO_DATABASE_NAME=youtube_service
-      - YOUTUBE_API_KEYS=CommaSeperatedKeys
+      - YOUTUBE_API_KEYS=CommaSeparatedKeys
       - DEFAULT_PAGE_SIZE=5
       - YOUTUBE_QUERY=official|cricket|news|game|football|tennis|sport|weather
