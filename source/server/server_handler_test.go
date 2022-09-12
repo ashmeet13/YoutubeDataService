@@ -113,13 +113,13 @@ func (s *ServerHandlerSuite) TestSearchHandler_DBFail() {
 	req.Header.Set("Content-Type", "application/json")
 	res := httptest.NewRecorder()
 
-	s.mockVideoMetadataStore.EXPECT().FindOneMetadata("test_title", "test_description").Return(nil, errors.New("dummy test error"))
+	s.mockVideoMetadataStore.EXPECT().FindMetadataTextSearch("test_title").Return(nil, errors.New("dummy test error"))
 	s.serverHandler.SearchHandler(res, req)
 
 	message, _ := ioutil.ReadAll(res.Body)
 
 	s.Equal(http.StatusInternalServerError, res.Code)
-	s.Equal("dummy test error", string(message))
+	s.Equal("dummy test error\n", string(message))
 }
 
 func (s *ServerHandlerSuite) TestSearchHandler_Ok() {
@@ -134,23 +134,34 @@ func (s *ServerHandlerSuite) TestSearchHandler_Ok() {
 	req.Header.Set("Content-Type", "application/json")
 	res := httptest.NewRecorder()
 
-	returnMetadata := &storage.VideoMetadata{
-		Title:       "test_title",
-		Description: "test_description",
-		VideoID:     "12345",
+	returnMetadata1 := &storage.VideoMetadata{
+		Title:       "test_title1",
+		Description: "test_description1",
+		VideoID:     "123",
 	}
 
-	s.mockVideoMetadataStore.EXPECT().FindOneMetadata("test_title", "test_description").Return(returnMetadata, nil)
+	returnMetadata2 := &storage.VideoMetadata{
+		Title:       "test_title2",
+		Description: "test_description2",
+		VideoID:     "456",
+	}
+
+	s.mockVideoMetadataStore.EXPECT().FindMetadataTextSearch("test_title").Return([]*storage.VideoMetadata{returnMetadata1}, nil)
+	s.mockVideoMetadataStore.EXPECT().FindMetadataTextSearch("test_description").Return([]*storage.VideoMetadata{returnMetadata2}, nil)
 	s.serverHandler.SearchHandler(res, req)
 
 	var response SearchResponse
 	_ = json.NewDecoder(res.Body).Decode(&response)
 
 	s.Equal(http.StatusOK, res.Code)
-	s.Equal(1, len(response.Metadata))
-	s.Equal("test_title", response.Metadata[0].Title)
-	s.Equal("test_description", response.Metadata[0].Description)
-	s.Equal("12345", response.Metadata[0].VideoID)
+	s.Equal(2, len(response.Metadata))
+	s.Equal("test_title1", response.Metadata[0].Title)
+	s.Equal("test_description1", response.Metadata[0].Description)
+	s.Equal("123", response.Metadata[0].VideoID)
+
+	s.Equal("test_title2", response.Metadata[1].Title)
+	s.Equal("test_description2", response.Metadata[1].Description)
+	s.Equal("456", response.Metadata[1].VideoID)
 }
 
 func (s *ServerHandlerSuite) TestNewFetchHandler_Ok() {

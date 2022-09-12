@@ -72,7 +72,7 @@ func (h *ServerHandler) SearchHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if searchFilters.Title != "" {
-		titleMatchedDocs, err := h.videoMetadataHandler.FindOneMetadataTextSearch(searchFilters.Title)
+		titleMatchedDocs, err := h.videoMetadataHandler.FindMetadataTextSearch(searchFilters.Title)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -82,7 +82,7 @@ func (h *ServerHandler) SearchHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if searchFilters.Description != "" {
-		desMatchedDocs, err := h.videoMetadataHandler.FindOneMetadataTextSearch(searchFilters.Description)
+		desMatchedDocs, err := h.videoMetadataHandler.FindMetadataTextSearch(searchFilters.Description)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			http.Error(w, err.Error(), http.StatusInternalServerError)

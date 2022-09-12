@@ -64,34 +64,19 @@ func (mr *MockVideoMetadataInterfaceMockRecorder) FetchPagedMetadata(arg0, arg1,
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchPagedMetadata", reflect.TypeOf((*MockVideoMetadataInterface)(nil).FetchPagedMetadata), arg0, arg1, arg2)
 }
 
-// FindOneMetadata mocks base method.
-func (m *MockVideoMetadataInterface) FindOneMetadata(arg0, arg1 string) (*storage.VideoMetadata, error) {
+// FindMetadataTextSearch mocks base method.
+func (m *MockVideoMetadataInterface) FindMetadataTextSearch(arg0 string) ([]*storage.VideoMetadata, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindOneMetadata", arg0, arg1)
-	ret0, _ := ret[0].(*storage.VideoMetadata)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// FindOneMetadata indicates an expected call of FindOneMetadata.
-func (mr *MockVideoMetadataInterfaceMockRecorder) FindOneMetadata(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindOneMetadata", reflect.TypeOf((*MockVideoMetadataInterface)(nil).FindOneMetadata), arg0, arg1)
-}
-
-// FindOneMetadataTextSearch mocks base method.
-func (m *MockVideoMetadataInterface) FindOneMetadataTextSearch(arg0 string) ([]*storage.VideoMetadata, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindOneMetadataTextSearch", arg0)
+	ret := m.ctrl.Call(m, "FindMetadataTextSearch", arg0)
 	ret0, _ := ret[0].([]*storage.VideoMetadata)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// FindOneMetadataTextSearch indicates an expected call of FindOneMetadataTextSearch.
-func (mr *MockVideoMetadataInterfaceMockRecorder) FindOneMetadataTextSearch(arg0 interface{}) *gomock.Call {
+// FindMetadataTextSearch indicates an expected call of FindMetadataTextSearch.
+func (mr *MockVideoMetadataInterfaceMockRecorder) FindMetadataTextSearch(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindOneMetadataTextSearch", reflect.TypeOf((*MockVideoMetadataInterface)(nil).FindOneMetadataTextSearch), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindMetadataTextSearch", reflect.TypeOf((*MockVideoMetadataInterface)(nil).FindMetadataTextSearch), arg0)
 }
 
 // FindOneMetadataWithVideoID mocks base method.

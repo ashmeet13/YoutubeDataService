@@ -15,8 +15,7 @@ type VideoMetadataInterface interface {
 	FindOneMetadataWithVideoID(id string) (*VideoMetadata, error)
 	UpdateOneMetadata(id string, videoMetadata *VideoMetadata) error
 	FetchPagedMetadata(timestamp time.Time, offset, limit int64) ([]*VideoMetadata, error)
-	FindOneMetadata(title string, description string) (*VideoMetadata, error)
-	FindOneMetadataTextSearch(searchText string) ([]*VideoMetadata, error)
+	FindMetadataTextSearch(searchText string) ([]*VideoMetadata, error)
 }
 
 func NewVideoMetadataImpl() *VideoMetadataImpl {
@@ -65,31 +64,6 @@ func (m *VideoMetadataImpl) FindOneMetadataWithVideoID(id string) (*VideoMetadat
 		return nil, err
 	}
 	return &decodedResult, err
-}
-
-func (m *VideoMetadataImpl) FindOneMetadata(title string, description string) (*VideoMetadata, error) {
-	query := bson.M{}
-
-	if title != "" {
-		query["title"] = bson.M{"$eq": title}
-	}
-
-	if description != "" {
-		query["description"] = bson.M{"$eq": description}
-	}
-
-	result := FindOne(m.collection, query)
-
-	var decodedResult VideoMetadata
-	err := result.Decode(&decodedResult)
-
-	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return &decodedResult, nil
 }
 
 func (m *VideoMetadataImpl) UpdateOneMetadata(id string, videoMetadata *VideoMetadata) error {
@@ -143,7 +117,7 @@ func (m *VideoMetadataImpl) FetchPagedMetadata(timestamp time.Time, offset, limi
 	return metadata, nil
 }
 
-func (m *VideoMetadataImpl) FindOneMetadataTextSearch(searchText string) ([]*VideoMetadata, error) {
+func (m *VideoMetadataImpl) FindMetadataTextSearch(searchText string) ([]*VideoMetadata, error) {
 	query := bson.M{
 		"$text": bson.M{"$search": searchText},
 	}
